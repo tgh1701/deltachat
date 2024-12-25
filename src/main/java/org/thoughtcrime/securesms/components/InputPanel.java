@@ -44,27 +44,28 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class InputPanel extends ConstraintLayout
   implements MicrophoneRecorderView.Listener,
-             KeyboardAwareLinearLayout.OnKeyboardShownListener,
-             MediaKeyboard.MediaKeyboardListener
-{
+  KeyboardAwareLinearLayout.OnKeyboardShownListener,
+  MediaKeyboard.MediaKeyboardListener {
 
   private static final String TAG = InputPanel.class.getSimpleName();
 
   private static final int FADE_TIME = 150;
 
-  private QuoteView       quoteView;
-  private EmojiToggle     emojiToggle;
-  private ComposeText     composeText;
-  private View            quickCameraToggle;
-  private View            quickAudioToggle;
-  private View            buttonToggle;
-  private View            recordingContainer;
-  private View            recordLockCancel;
+  private QuoteView quoteView;
+  private EmojiToggle emojiToggle;
+  private ComposeText composeText;
+  private View quickCameraToggle;
+  private View quickAudioToggle;
+  private View buttonToggle;
+  private View recordingContainer;
+  private View recordLockCancel;
 
   private MicrophoneRecorderView microphoneRecorderView;
-  private SlideToCancel          slideToCancel;
-  private RecordTime             recordTime;
+  private SlideToCancel slideToCancel;
+  private RecordTime recordTime;
   private ValueAnimator quoteAnimator;
+  private View subjectContainer;
+  private View toggleSubjectButton;
 
   private @Nullable Listener listener;
 
@@ -85,21 +86,25 @@ public class InputPanel extends ConstraintLayout
   public void onFinishInflate() {
     super.onFinishInflate();
 
-    View quoteDismiss           = findViewById(R.id.quote_dismiss);
+    View quoteDismiss = findViewById(R.id.quote_dismiss);
 
-    this.quoteView              = findViewById(R.id.quote_view);
-    this.emojiToggle            = findViewById(R.id.emoji_toggle);
-    this.composeText            = findViewById(R.id.embedded_text_editor);
-    this.quickCameraToggle      = findViewById(R.id.quick_camera_toggle);
-    this.quickAudioToggle       = findViewById(R.id.quick_audio_toggle);
-    this.buttonToggle           = findViewById(R.id.button_toggle);
-    this.recordingContainer     = findViewById(R.id.recording_container);
-    this.recordLockCancel       = findViewById(R.id.record_cancel);
-    this.recordTime             = new RecordTime(findViewById(R.id.record_time));
-    this.slideToCancel          = new SlideToCancel(findViewById(R.id.slide_to_cancel));
+    this.quoteView = findViewById(R.id.quote_view);
+    this.emojiToggle = findViewById(R.id.emoji_toggle);
+    this.composeText = findViewById(R.id.embedded_text_editor);
+    this.quickCameraToggle = findViewById(R.id.quick_camera_toggle);
+    this.quickAudioToggle = findViewById(R.id.quick_audio_toggle);
+    this.buttonToggle = findViewById(R.id.button_toggle);
+    this.recordingContainer = findViewById(R.id.recording_container);
+    this.recordLockCancel = findViewById(R.id.record_cancel);
+    this.recordTime = new RecordTime(findViewById(R.id.record_time));
+    this.slideToCancel = new SlideToCancel(findViewById(R.id.slide_to_cancel));
     this.microphoneRecorderView = findViewById(R.id.recorder_view);
     this.microphoneRecorderView.setListener(this);
 
+    this.subjectContainer = findViewById(R.id.subject_container);
+    this.toggleSubjectButton = findViewById(R.id.toggle_subject_button);
+
+    this.toggleSubjectButton.setOnClickListener(v -> toggleSubjectVisibility());
     this.recordLockCancel.setOnClickListener(v -> microphoneRecorderView.cancelAction());
 
     quoteDismiss.setOnClickListener(v -> clearQuote());
@@ -120,12 +125,11 @@ public class InputPanel extends ConstraintLayout
                        long id,
                        @NonNull Recipient author,
                        @NonNull CharSequence body,
-                       @NonNull SlideDeck attachments)
-  {
+                       @NonNull SlideDeck attachments) {
     this.quoteView.setQuote(glideRequests, msg, author, body, attachments, false);
 
     int originalHeight = this.quoteView.getVisibility() == VISIBLE ? this.quoteView.getMeasuredHeight()
-            : 0;
+      : 0;
 
     this.quoteView.setVisibility(VISIBLE);
     this.quoteView.measure(0, 0);
@@ -161,10 +165,9 @@ public class InputPanel extends ConstraintLayout
   private static ValueAnimator createHeightAnimator(@NonNull View view,
                                                     int originalHeight,
                                                     int finalHeight,
-                                                    @Nullable AnimationCompleteListener onAnimationComplete)
-  {
+                                                    @Nullable AnimationCompleteListener onAnimationComplete) {
     ValueAnimator animator = ValueAnimator.ofInt(originalHeight, finalHeight)
-            .setDuration(200);
+      .setDuration(200);
 
     animator.addUpdateListener(animation -> {
       ViewGroup.LayoutParams params = view.getLayoutParams();
@@ -182,8 +185,8 @@ public class InputPanel extends ConstraintLayout
   public Optional<QuoteModel> getQuote() {
     if (quoteView.getVisibility() == View.VISIBLE && quoteView.getBody() != null) {
       return Optional.of(new QuoteModel(
-              quoteView.getDcContact(), quoteView.getBody().toString(),
-              false, quoteView.getAttachments(), quoteView.getOriginalMsg()
+        quoteView.getDcContact(), quoteView.getBody().toString(),
+        false, quoteView.getAttachments(), quoteView.getOriginalMsg()
       ));
     } else {
       return Optional.absent();
@@ -235,11 +238,10 @@ public class InputPanel extends ConstraintLayout
   public void onRecordMoved(float offsetX, float absoluteX) {
     slideToCancel.moveTo(offsetX);
 
-    float position  = absoluteX / recordingContainer.getWidth();
+    float position = absoluteX / recordingContainer.getWidth();
 
     if (ViewUtil.isLtr(this) && position <= 0.5 ||
-        ViewUtil.isRtl(this) && position >= 0.6)
-    {
+      ViewUtil.isRtl(this) && position >= 0.6) {
       this.microphoneRecorderView.cancelAction();
     }
   }
@@ -272,8 +274,8 @@ public class InputPanel extends ConstraintLayout
   private long onRecordHideEvent() {
     recordLockCancel.setVisibility(View.GONE);
 
-    ListenableFuture<Void> future      = slideToCancel.hide();
-    long                   elapsedTime = recordTime.hide();
+    ListenableFuture<Void> future = slideToCancel.hide();
+    long elapsedTime = recordTime.hide();
 
     future.addListener(new AssertedSuccessListener<Void>() {
       @Override
@@ -316,7 +318,7 @@ public class InputPanel extends ConstraintLayout
   @Override
   public void onEmojiPicked(String emoji) {
     final int start = composeText.getSelectionStart();
-    final int end   = composeText.getSelectionEnd();
+    final int end = composeText.getSelectionEnd();
 
     composeText.getText().replace(Math.min(start, end), Math.max(start, end), emoji);
     composeText.setSelection(start + emoji.length());
@@ -324,10 +326,15 @@ public class InputPanel extends ConstraintLayout
 
   public interface Listener {
     void onRecorderStarted();
+
     void onRecorderLocked();
+
     void onRecorderFinished();
+
     void onRecorderCanceled();
+
     void onRecorderPermissionRequired();
+
     void onEmojiToggle();
   }
 
@@ -348,9 +355,9 @@ public class InputPanel extends ConstraintLayout
 
       AnimationSet animation = new AnimationSet(true);
       animation.addAnimation(new TranslateAnimation(Animation.ABSOLUTE, slideToCancelView.getTranslationX(),
-                                                    Animation.ABSOLUTE, 0,
-                                                    Animation.RELATIVE_TO_SELF, 0,
-                                                    Animation.RELATIVE_TO_SELF, 0));
+        Animation.ABSOLUTE, 0,
+        Animation.RELATIVE_TO_SELF, 0,
+        Animation.RELATIVE_TO_SELF, 0));
       animation.addAnimation(new AlphaAnimation(1, 0));
 
       animation.setDuration(MicrophoneRecorderView.ANIMATION_DURATION);
@@ -366,9 +373,9 @@ public class InputPanel extends ConstraintLayout
 
     void moveTo(float offset) {
       Animation animation = new TranslateAnimation(Animation.ABSOLUTE, offset,
-                                                   Animation.ABSOLUTE, offset,
-                                                   Animation.RELATIVE_TO_SELF, 0,
-                                                   Animation.RELATIVE_TO_SELF, 0);
+        Animation.ABSOLUTE, offset,
+        Animation.RELATIVE_TO_SELF, 0,
+        Animation.RELATIVE_TO_SELF, 0);
 
       animation.setDuration(0);
       animation.setFillAfter(true);
@@ -412,15 +419,22 @@ public class InputPanel extends ConstraintLayout
       }
     }
 
-    private String formatElapsedTime(long ms)
-    {
+    private String formatElapsedTime(long ms) {
       return DateUtils.formatElapsedTime(TimeUnit.MILLISECONDS.toSeconds(ms))
-              + String.format(".%01d", ((ms/100)%10));
+        + String.format(".%01d", ((ms / 100) % 10));
 
     }
   }
 
   public interface MediaListener {
     void onMediaSelected(@NonNull Uri uri, String contentType);
+  }
+
+  private void toggleSubjectVisibility() {
+    if (subjectContainer.getVisibility() == View.GONE) {
+      subjectContainer.setVisibility(View.VISIBLE);
+    } else {
+      subjectContainer.setVisibility(View.GONE);
+    }
   }
 }
